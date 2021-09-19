@@ -1,99 +1,83 @@
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
 
 
 class Quiz(models.Model):
-    ''' Model for storing quizzes '''
-
-    title = models.CharField(max_length=100)
-    description = models.TextField(blank=True)
-    start_date = models.DateField()
-    end_date = models.DateField()
+    title = models.CharField(verbose_name="Название", max_length=100)
+    description = models.TextField(verbose_name="Описание", blank=True)
+    start_date = models.DateField(verbose_name="Дата начала")
+    end_date = models.DateField(verbose_name="Дата окончания")
 
     class Meta:
-        verbose_name = "Quiz"
-        verbose_name_plural = "Quizzes"
+        verbose_name = "Опрос"
+        verbose_name_plural = "Опросы"
 
     def __str__(self):
         return self.title
 
     def clean(self):
-        ''' Checks dates '''
+        """Проверка даты"""
         super().clean()
         if self.start_date > self.end_date:
-            raise ValidationError(
-                    'Start date can not be over end date'
-                )
+            raise ValidationError("Закончиться не может раньше чем начаться")
 
     @staticmethod
     def get_active():
-        ''' Returns active quizzes '''
         today = timezone.now().date()
         active_quizzes = Quiz.objects.filter(start_date__gte=today)
         return active_quizzes
 
 
 class Question(models.Model):
-    ''' Model for storing questions '''
+    class QUESTIONSTYPE:
+        TEXT = "Текст"
+        ONE = "Одиночный выбор"
+        MULTI = "Множественный выбор"
+        TYPES = ((TEXT, "Текст"), (ONE, "Одиночный выбор"), (MULTI, "Множественный выбор"))
 
-    question_types = (
-        ('radio', 'radio'),
-        ('checkbox', 'checkbox'),
-        ('text', 'text'),
-    )
-    quiz_id = models.ForeignKey(Quiz, on_delete=models.CASCADE)
-    question_text = models.CharField(max_length=1000)
+    quiz_id = models.ForeignKey(Quiz, verbose_name="Опрос", on_delete=models.CASCADE)
+    question_text = models.CharField(verbose_name="Вопрос", max_length=1000)
     question_type = models.CharField(
-        max_length=8,
-        choices=question_types,
-        default=_('radio')
+        verbose_name="Тип вопроса", max_length=128, choices=QUESTIONSTYPE.TYPES, default=QUESTIONSTYPE.ONE
     )
 
     class Meta:
-        verbose_name = "Question"
-        verbose_name_plural = "Questions"
+        verbose_name = "Вопрос"
+        verbose_name_plural = "Вопросы"
 
     def __str__(self):
         return self.question_text
 
 
 class Choice(models.Model):
-    ''' Model for storing choices '''
-
-    question_id = models.ForeignKey(Question, on_delete=models.CASCADE)
-    choice_text = models.CharField(max_length=1000)
+    question_id = models.ForeignKey(Question, verbose_name="Вопрос", on_delete=models.CASCADE)
+    choice_text = models.CharField(verbose_name="Ответ", max_length=1000)
 
     class Meta:
-        verbose_name = "Choice"
-        verbose_name_plural = "Choices"
+        verbose_name = "Ответ"
+        verbose_name_plural = "Ответы"
 
     def __str__(self):
         return self.choice_text
 
 
 class AnswerTracker(models.Model):
-    ''' Model for storing customer's answers '''
-
-    customer = models.IntegerField(verbose_name=_('customer_id'))
-    quiz_id = models.ForeignKey(Quiz, on_delete=models.CASCADE)
-    question_id = models.ForeignKey(Question, on_delete=models.CASCADE)
-    choice_id = models.ForeignKey(Choice, on_delete=models.CASCADE, blank=True, null=True)
-    answer_text = models.TextField(blank=True)
+    customer = models.ForeignKey(get_user_model(), verbose_name="Пользователь", on_delete=models.CASCADE)
+    quiz_id = models.ForeignKey(Quiz, verbose_name="Опрос", on_delete=models.CASCADE)
+    question_id = models.ForeignKey(Question, verbose_name="Вопрос", on_delete=models.CASCADE)
+    choice_id = models.ForeignKey(Choice, verbose_name="Ответ", on_delete=models.CASCADE, blank=True, null=True)
+    answer_text = models.TextField(verbose_name="Текст ответа", blank=True)
 
     class Meta:
-        verbose_name = "Answer Tracker"
-        verbose_name_plural = "Answers Tracker"
+        verbose_name = "История ответов"
+        verbose_name_plural = "История ответов"
 
     def clean(self):
-        ''' Checks answers, at lest one answer must be given'''
         super().clean()
         if not any([self.choice_id, self.answer_text]):
-            raise ValidationError(
-                    'Answers choice or text fields must be filled'
-            )
+            raise ValidationError("Поля для выбора ответов или текстовые поля должны быть заполнены")
 
     def __str__(self):
-        return f'{self.customer} - {self.question_id} - {self.choice_id or self.answer_text}'
-        
+        return f"{self.customer} - {self.question_id} - {self.choice_id or self.answer_text}"

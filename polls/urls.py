@@ -1,11 +1,12 @@
-from django.urls import path
+from rest_framework.routers import DefaultRouter
 
-from . import views
+from . import viewset
 
-app_name = 'polls'
-urlpatterns = [
-    path('', views.QuizzesListView.as_view(), name='quizzes_list'),
-    path('<int:quiz_id>/', views.QuizDetailView.as_view(), name='quizzes_detail'),
-    path('<int:quiz_id>/answers/', views.AnswerTrakerView.as_view()),
-    path('report/', views.ReportView.as_view(), name='report'),
-]
+router = DefaultRouter()
+
+router.register("polls", viewset.QuizzesViewSet)
+router.register("questions", viewset.QuestionViesSet)
+router.register("answer", viewset.AnswerTrakerViewSet)
+
+
+urlpatterns = router.urls

@@ -1,44 +1,50 @@
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Quiz, Question, AnswerTracker, Choice
+from .models import AnswerTracker, Choice, Question, Quiz
 
 
 class QuizSerializer(serializers.ModelSerializer):
-    ''' Quiz model serializer '''
     class Meta:
         model = Quiz
-        fields = '__all__'
+        fields = "__all__"
 
 
 class ChoiceSerializer(serializers.ModelSerializer):
-    ''' Choice model serializer '''
     class Meta:
         model = Choice
-        fields = ['id', 'choice_text']
+        fields = ["id", "choice_text"]
 
 
 class QuestionSerializer(serializers.ModelSerializer):
-    ''' Question model serializer '''
     choice_set = ChoiceSerializer(many=True, read_only=True, required=False)
 
     class Meta:
         model = Question
-        fields = ['id', 'question_text', 'question_type', 'choice_set']
+        fields = ["id", "question_text", "question_type", "choice_set"]
 
 
 class AnswerTrackerSerializer(serializers.ModelSerializer):
-    ''' AnswerTracker model serializer '''
+    choice_id = ChoiceSerializer(read_only=True)
+
     class Meta:
         model = AnswerTracker
-        fields = '__all__'
+        fields = ["id", "customer", "quiz_id", "question_id", "choice_id", "answer_text"]
 
 
-class AnswerSerializer(serializers.Serializer):
-    ''' Serializer for Report view '''
-    quiz = serializers.SerializerMethodField('get_quiz_title')
-    question = serializers.SerializerMethodField('get_question_text')
+class AnswerTrackerListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = [
+            "id",
+        ]
+
+
+class AnswerSerializer(serializers.ModelSerializer):
+    quiz_id = serializers.SerializerMethodField("get_quiz_title")
+    question_id = serializers.SerializerMethodField("get_question_text")
     answer_text = serializers.CharField()
-    choice = serializers.SerializerMethodField('get_choice_text')
+    choice_id = serializers.SerializerMethodField("get_choice_text")
 
     def get_quiz_title(self, obj):
         return obj.quiz_id.title
@@ -49,9 +55,17 @@ class AnswerSerializer(serializers.Serializer):
     def get_choice_text(self, obj):
         return obj.choice_id.choice_text if obj.choice_id else None
 
-
-class AnsweredQuestionsSerializer(serializers.ModelSerializer):
-    ''' AnswerTracker model serializer with restricted fields'''
     class Meta:
         model = AnswerTracker
-        fields = ['question_id', 'choice_id', 'answer_text']
+        fields = [
+            "quiz_id",
+            "question_id",
+            "choice_id",
+            "answer_text",
+        ]
+
+
+class AnsweredQuestionsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AnswerTracker
+        fields = ["question_id", "choice_id", "answer_text"]
