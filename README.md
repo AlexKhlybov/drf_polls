@@ -50,12 +50,12 @@ pip3 install pipenv
 
 Копируем проект:
 ```
-git clone ...
+git clone https://github.com/AlexKhlybov/drf_polls.git
 ```
 
 Переходим в папку проекта:
 ```
-cd ...
+cd drf_polls
 ```
 
 Создаем виртуальное окружение и устанавливаем зависимости:
